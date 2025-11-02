@@ -1,0 +1,420 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,13,20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "3bb77c99-bdea-42b7-99e4-359fed6921b0",
+      "name": "Schedule Reminder Times",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2784,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1NZLG5bz0z742NnTB0sPh2D9QvgFOMIErjhjZRWpJTKs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRangeA1",
+              "range": "A:H"
+            }
+          },
+          "outputFormatting": {
+            "values": {
+              "general": "UNFORMATTED_VALUE",
+              "date": "SERIAL_NUMBER"
+            }
+          }
+        }
+      },
+      "id": "ca82db2b-c6fe-44e2-8d56-f5f868287717",
+      "name": "Read Patient Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3008,
+        1440
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oCwpVUr9dv8PwzyT",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json['Chat ID'] }}",
+        "text": "=Hi {{ $json.Name }}, this is your reminder to take {{ $json.Medicine }}. Please reply 'took' when you've taken it.",
+        "additionalFields": {}
+      },
+      "id": "c1e270f5-a7fa-4549-a455-3ee25cd16ad7",
+      "name": "Send Scheduled Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3232,
+        1440
+      ],
+      "webhookId": "5c6c85ae-0bdd-48dc-872e-e1ab0874d206",
+      "credentials": {
+        "telegramApi": {
+          "id": "nUh57HnghU69X1C6",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "0da030f9-1ecf-4882-b1b1-b521f8b3b952",
+      "name": "Telegram Reply Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2784,
+        1760
+      ],
+      "webhookId": "e5ddff24-20a8-4bdb-baea-0ade8e9d0ffe",
+      "credentials": {
+        "telegramApi": {
+          "id": "nUh57HnghU69X1C6",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract data from Telegram message\nconst message = $input.item.json.message;\nconst replyText = message.text || '';\nconst username = message.from.username || message.from.first_name || 'Unknown';\nconst chatId = message.chat.id;\n\n// Normalize reply text to lowercase for comparison\nconst normalizedReply = replyText.toLowerCase().trim();\n\n// Return the extracted and processed data\nreturn {\n  json: {\n    replyText: replyText,\n    normalizedReply: normalizedReply,\n    username: username,\n    chatId: chatId,\n    messageId: message.message_id,\n    timestamp: message.date\n  }\n};"
+      },
+      "id": "3fda283f-3452-4179-b701-182ba8ba3089",
+      "name": "Parse Reply Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3008,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1NZLG5bz0z742NnTB0sPh2D9QvgFOMIErjhjZRWpJTKs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Chat ID": "={{ $json.chatId }}",
+            "Took Medicine?": "={{ $json.replyText }}",
+            "Date": "={{ $now.toFormat('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [
+            "Chat ID"
+          ],
+          "schema": [
+            {
+              "id": "Chat ID",
+              "displayName": "Chat ID",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Took Medicine?",
+              "displayName": "Took Medicine?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e6df816a-a896-4ef9-b9b6-937e0bd992cd",
+      "name": "Update Medicine Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3232,
+        1760
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oCwpVUr9dv8PwzyT",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.normalizedReply }}",
+              "rightValue": "took",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f18ba6ea-ce3e-4a03-8e78-3fa3f898ad09",
+      "name": "Check If Medicine Taken",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3456,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "not",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "no",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "didn't",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-4",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "haven't",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-5",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "can't",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-6",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "won't",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-7",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "bad",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-8",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "worse",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-9",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "terrible",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "id-10",
+              "leftValue": "={{ $('Parse Reply Message').item.json.normalizedReply }}",
+              "rightValue": "awful",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "8284e9ba-5b4a-47dd-b684-b779a668eafb",
+      "name": "Check For Negative Keywords",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3680,
+        1664
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Reminder Times": {
+      "main": [
+        [
+          {
+            "node": "Read Patient Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Patient Data": {
+      "main": [
+        [
+          {
+            "node": "Send Scheduled Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Reply Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Reply Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reply Message": {
+      "main": [
+        [
+          {
+            "node": "Update Medicine Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Medicine Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Medicine Taken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Medicine Taken": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Check For Negative Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check For Negative Keywords": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "abadf44b0f50d96be1db952b3ee0b0c44422c9be6c6ba89c6605060b97b59e1f"
+  }
+}
+
